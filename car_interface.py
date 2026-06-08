@@ -1,23 +1,25 @@
+import os
+
 import gi
 import datetime
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib, Gdk
+from gi.repository import Gtk, GLib, Gdk, GdkPixbuf
 import stream 
 import settings # Archivo de CONFIG
 import music_player
 
 
 ICON_SETS = {
-    "minimal": {
+    "lineal": {
         "map": "mark-location-symbolic",
         "music": "audio-x-generic-symbolic",
         "weather": "weather-few-clouds-symbolic",
         "settings": "preferences-system-symbolic"
     },
-    "classic": {
-        "map": "go-home-symbolic",
-        "music": "media-playback-start-symbolic",
-        "weather": "applications-science-symbolic",
+    "relleno": {
+        "map": "avatar-default-symbolic",          # Icono más sólido/relleno
+        "music": "media-playback-start-symbolic",    # Símbolo play clásico relleno
+        "weather": "accessories-calculator-symbolic",# Bloque sólido para pruebas
         "settings": "applications-system-symbolic"
     }
 }
@@ -79,11 +81,11 @@ class CarPlayUI(Gtk.ApplicationWindow):
         sb.get_style_context().add_class("glass")
         sb.set_size_request(80, -1)
         sb.set_valign(Gtk.Align.FILL)
-        # Corrección aquí: Creamos la caja y luego asignamos el margen al estilo GTK3
+        
         top_spacer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         top_spacer.set_margin_top(10)
         sb.add(top_spacer)
-        # El botón de cámara no se guarda en el diccionario porque siempre es el mismo
+        
         apps = [
             ("map", "Navegación"),
             ("music", "Música"),
@@ -92,10 +94,11 @@ class CarPlayUI(Gtk.ApplicationWindow):
         
         for view, tooltip in apps:
             btn = Gtk.Button()
-            img = Gtk.Image.new_from_icon_name(ICON_SETS["minimal"][view], Gtk.IconSize.BUTTON)
+            # Iniciamos con el set "lineal" por defecto
+            img = Gtk.Image.new_from_icon_name(ICON_SETS["lineal"][view], Gtk.IconSize.BUTTON)
             img.set_pixel_size(24)
             
-            self.sidebar_icons[view] = img # Guardamos la imagen para cambiarla después
+            self.sidebar_icons[view] = img # Guardamos la referencia de la imagen
             btn.add(img)
             btn.get_style_context().add_class("side-icon")
             btn.set_tooltip_text(tooltip)
@@ -116,11 +119,11 @@ class CarPlayUI(Gtk.ApplicationWindow):
         spacer.set_vexpand(True)
         sb.add(spacer)
 
-        # Botón de Ajustes (Abre la pestaña settings)
+        # Botón de Ajustes 
         btn_settings = Gtk.Button()
-        img_settings = Gtk.Image.new_from_icon_name(ICON_SETS["minimal"]["settings"], Gtk.IconSize.BUTTON)
+        img_settings = Gtk.Image.new_from_icon_name(ICON_SETS["lineal"]["settings"], Gtk.IconSize.BUTTON)
         img_settings.set_pixel_size(28)
-        self.sidebar_icons["settings"] = img_settings
+        self.sidebar_icons["settings"] = img_settings # También guardamos ajustes para que cambie de estilo
         
         btn_settings.add(img_settings)
         btn_settings.get_style_context().add_class("side-icon")
@@ -159,15 +162,17 @@ class CarPlayUI(Gtk.ApplicationWindow):
         }}
 
         .playlist-row {{
-            background-color: rgba(255, 255, 255, 0.05);
+            background-color: transparent; /* Hace que el cuadro sea totalmente transparente */
             border-radius: 16px;
             padding: 10px 20px;
-            border: 1px solid {glass_border};
-            transition: all 150ms ease;
+            border: 1px solid transparent; /* Sin bordes rígidos */
+            transition: all 200ms ease;
         }}
         
         .playlist-row:hover {{
-            background-color: {t["text_accent"]};
+            /* Al seleccionarla o pasar el cursor, se tiñe sutilmente del color del tema activo */
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid {glass_border};
         }}
 
         .side-icon {{
@@ -185,9 +190,17 @@ class CarPlayUI(Gtk.ApplicationWindow):
         .clock-time {{ font-size: 56px; font-weight: 800; color: {t["text_main"]}; letter-spacing: -2px; }}
         .clock-date {{ font-size: 15px; color: {t["text_main"]}; font-weight: 500; letter-spacing: 1px; }}
         
-        .album-art-medium {{ background: linear-gradient(135deg, {t["text_accent"]}, {t["card_bg"]}); border-radius: 20px; box-shadow: 0 12px 24px rgba(0,0,0,0.5); }}
-        .art-ico-medium {{ font-size: 48px; color: {t["text_main"]}; opacity: 0.5; }}
+        .album-art-medium {{ 
+            background: linear-gradient(135deg, {t["text_accent"]}, {t["card_bg"]}); 
+            border-radius: 20px; 
+            box-shadow: 0 12px 24px rgba(0,0,0,0.5); 
+            padding: 0px; /* Sin padding para que la imagen llene todo el marco */
+        }}
         
+        .album-art-medium image {{ 
+            border-radius: 20px; /* El mismo redondeado del marco de fondo */
+        }}
+
         .song-title-big {{ font-size: 18px; font-weight: bold; color: {t["text_main"]}; }}
         .song-artist-big {{ font-size: 13px; color: {t["text_muted"]}; }}
         
@@ -250,12 +263,15 @@ class CarPlayUI(Gtk.ApplicationWindow):
         Gtk.StyleContext.add_provider_for_screen(
             screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
             
-    
-
     def apply_icons(self, style_name):
-        icons = ICON_SETS[style_name]
-        for view_name, image_widget in self.sidebar_icons.items():
-            image_widget.set_from_icon_name(icons[view_name], Gtk.IconSize.BUTTON)
+            """Cambia el set de iconos de la barra lateral dinámicamente"""
+            # Convertimos a minúsculas por si desde settings mandas "Lineal" o "Relleno"
+            style_key = style_name.lower() 
+            
+            if style_key in ICON_SETS:
+                icons = ICON_SETS[style_key]
+                for view_name, image_widget in self.sidebar_icons.items():
+                    image_widget.set_from_icon_name(icons[view_name], Gtk.IconSize.BUTTON)
 
     # ── VISTAS CENTRALES ──────────────────────────────────────────
     def build_map_page(self):
@@ -348,13 +364,18 @@ class CarPlayUI(Gtk.ApplicationWindow):
         top_music.set_valign(Gtk.Align.CENTER)
         top_music.set_vexpand(True)
 
+        # Contenedor estético de la carátula
         art_box = Gtk.Box()
         art_box.get_style_context().add_class("album-art-medium")
         art_box.set_size_request(130, 130)
         art_box.set_halign(Gtk.Align.CENTER)
-        art_lbl = Gtk.Label(label="♪")
-        art_lbl.get_style_context().add_class("art-ico-medium")
-        art_box.add(art_lbl)
+
+        # CAMBIO CLAVE: Creamos un Gtk.Image vacío por defecto guardado en self.album_art
+        self.album_art = Gtk.Image()
+        # Le ponemos un icono musical nativo del sistema por defecto mientras no suene nada
+        self.album_art.set_from_icon_name("audio-x-generic-symbolic", Gtk.IconSize.DIALOG)
+        
+        art_box.add(self.album_art)
         top_music.add(art_box)
 
         # Usamos variables self. para poder modificar el texto desde la función de actualización
@@ -423,7 +444,7 @@ class CarPlayUI(Gtk.ApplicationWindow):
         
         bottom_music.add(ctrl_row)
         
-        btn_full = Gtk.Button(label="Ver pantalla completa")
+        btn_full = Gtk.Button(label="Ver Playlist")
         btn_full.get_style_context().add_class("btn-outline")
         btn_full.connect("clicked", self.on_nav, "music")
         bottom_music.add(btn_full)
@@ -433,17 +454,28 @@ class CarPlayUI(Gtk.ApplicationWindow):
 
         return panel
 
-    def update_mini_player(self, title, artist, is_playing):
-        """Actualiza la tarjeta derecha cuando music_player detecta un cambio de canción"""
+    def update_mini_player(self, title, artist, is_playing, cover_path):
+        """Actualiza la tarjeta derecha cuando music_player cambia de canción"""
         self.lbl_mini_title.set_text(title)
         self.lbl_mini_artist.set_text(artist)
         
-        # Cambiamos el icono visual de GTK en lugar del set_label viejo
+        # Cambiar icono de Play/Pause
         if is_playing:
             self.img_play_pause.set_from_icon_name("media-playback-pause-symbolic", Gtk.IconSize.BUTTON)
         else:
             self.img_play_pause.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
-
+            
+        # --- ACTUALIZAR CARÁTULA GRANDE ---
+        if cover_path and os.path.exists(cover_path):
+            # Escalamos la imagen al tamaño de tu cuadro del reproductor (ejemplo: 200x200 o el tamaño que use tu diseño)
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(cover_path, 130, 130, True)
+            
+            # Suponiendo que tu contenedor de carátula se llama 'self.album_art' y es un Gtk.Image
+            self.album_art.set_from_pixbuf(pixbuf)
+        else:
+            # Si no hay imagen, puedes poner un icono musical gigante por defecto
+            self.album_art.set_from_icon_name("audio-x-generic-symbolic", Gtk.IconSize.DIALOG)
+            
     def update_progress_bar(self, current_sec, total_sec, current_str, total_str):
         """Actualiza la barra de progreso y los textos de tiempo en tiempo real"""
         # Ajustamos el rango máximo de la barra al total de segundos de la canción

@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gst', '1.0')
-from gi.repository import Gtk, Gst, GLib, Gdk
+from gi.repository import Gtk, Gst, GLib, Gdk, GdkPixbuf
 
 # Inicializar motor de audio
 Gst.init(None)
@@ -92,13 +92,24 @@ class MusicManager:
             artist = "Desconocido"
             title = filename
 
-        # Guardar en la lógica interna
+        # --- BUSCAR CARÁTULA DE LA CANCIÓN ---
+        # Buscamos si existe un archivo .png o .jpg con el mismo nombre de la canción
+        cover_path = filepath.with_suffix(".png")
+        if not cover_path.exists():
+            cover_path = filepath.with_suffix(".jpg")
+        
+        # Si no existe ninguna, usamos la portada por defecto
+        if not cover_path.exists():
+            cover_path = Path("musica/default.png")
+
+        # Guardar en la lógica interna (ahora incluyendo "cover")
         track_index = len(self.playlist)
         self.playlist.append({
             "path": str(filepath.resolve()),
             "title": title,
             "artist": artist,
-            "duration": "--:--" # GStreamer lo calcula al reproducir
+            "cover": str(cover_path.resolve()) if cover_path.exists() else None,
+            "duration": "--:--"
         })
 
         # --- DISEÑO DE LA FILA DE LA PLAYLIST ---
@@ -106,10 +117,16 @@ class MusicManager:
         row.get_style_context().add_class("playlist-row")
         row.set_margin_bottom(10)
         
-        # Icono de nota musical
-        icon = Gtk.Label(label="♫")
-        icon.get_style_context().add_class("art-ico-medium")
-        icon.set_size_request(50, -1)
+        # CAMBIO AQUÍ: Reemplazamos el label "♫" por un Gtk.Image real para la miniatura
+        if cover_path.exists():
+            # Cargamos la imagen y la escalamos a un tamaño ideal para la lista (48x48 píxeles)
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(str(cover_path), 48, 48, True)
+            icon = Gtk.Image.new_from_pixbuf(pixbuf)
+        else:
+            # Fallback por si ni default.png existe, usamos un icono de sistema
+            icon = Gtk.Image.new_from_icon_name("audio-x-generic-symbolic", Gtk.IconSize.DND)
+            
+        icon.set_size_request(48, 48)
         row.add(icon)
         
         # Textos (Título y Artista)
@@ -136,8 +153,10 @@ class MusicManager:
         row.add(lbl_dur)
         
         # Botón de Reproducir a la derecha
-        btn_play = Gtk.Button(label="▶️")
-        btn_play.get_style_context().add_class("ctrl-btn")
+        btn_play = Gtk.Button()
+        img_btn_play = Gtk.Image.new_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
+        btn_play.add(img_btn_play)
+        btn_play.get_style_context().add_class("ctrl-btn") # Reutiliza tus estilos circulares
         btn_play.connect("clicked", lambda b, idx=track_index: self.play_index(idx))
         row.add(btn_play)
         
@@ -161,7 +180,7 @@ class MusicManager:
         self.is_playing = True
         
         # Actualizar la interfaz central (en car_interface.py)
-        self.callback(track["title"], track["artist"], True)
+        self.callback(track["title"], track["artist"], True, track["cover"])
 
     def toggle_pause(self):
         if not self.playlist: return
@@ -179,7 +198,7 @@ class MusicManager:
                 
         # Actualizar el botón de la UI principal
         track = self.playlist[self.current_index]
-        self.callback(track["title"], track["artist"], self.is_playing)
+        self.callback(track["title"], track["artist"], self.is_playing, track["cover"])
 
     def next_song(self):
         if not self.playlist: return

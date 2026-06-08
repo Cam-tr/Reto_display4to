@@ -105,13 +105,16 @@ class SettingsPage(Gtk.Box):
         
         box_icons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)     
 
-        # Quitamos emojis propensos a fallar en los botones de iconos
-        btn_icon_1 = Gtk.Button(label="Minimalista")
+        # Primer botón cambiado a "Lineal"
+        btn_icon_1 = Gtk.Button(label="Lineal")
         btn_icon_1.get_style_context().add_class("settings-btn")
-        btn_icon_1.connect("clicked", lambda x: self.main_window.apply_icons("minimal"))
-        btn_icon_2 = Gtk.Button(label="Clásico")
+        btn_icon_1.connect("clicked", lambda x: self.main_window.apply_icons("lineal"))
+        
+        # Segundo botón cambiado a "Relleno"
+        btn_icon_2 = Gtk.Button(label="Relleno")
         btn_icon_2.get_style_context().add_class("settings-btn")
-        btn_icon_2.connect("clicked", lambda x: self.main_window.apply_icons("classic"))
+        btn_icon_2.connect("clicked", lambda x: self.main_window.apply_icons("relleno"))
+        
         box_icons.add(btn_icon_1)
         box_icons.add(btn_icon_2)
         self.add(box_icons)
