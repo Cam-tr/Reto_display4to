@@ -398,15 +398,22 @@ class CarPlayUI(Gtk.ApplicationWindow):
         ctrl_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         ctrl_row.set_halign(Gtk.Align.CENTER)
         
-        btn_prev = Gtk.Button(label="⏮")
+        btn_prev = Gtk.Button()
+        img_prev = Gtk.Image.new_from_icon_name("media-skip-backward-symbolic", Gtk.IconSize.BUTTON)
+        btn_prev.add(img_prev)
         btn_prev.get_style_context().add_class("ctrl-btn")
         btn_prev.connect("clicked", lambda x: self.music_sys.prev_song())
-        
-        self.btn_play_pause = Gtk.Button(label="▶️")
+    
+        # 2. Botón Play/Pause (▶️) cambiado a Icono GTK (Guardamos la imagen para poder cambiarla)
+        self.btn_play_pause = Gtk.Button()
+        self.img_play_pause = Gtk.Image.new_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
+        self.btn_play_pause.add(self.img_play_pause)
         self.btn_play_pause.get_style_context().add_class("ctrl-btn")
         self.btn_play_pause.connect("clicked", lambda x: self.music_sys.toggle_pause())
         
-        btn_next = Gtk.Button(label="⏭")
+        btn_next = Gtk.Button()
+        img_next = Gtk.Image.new_from_icon_name("media-skip-forward-symbolic", Gtk.IconSize.BUTTON)
+        btn_next.add(img_next)
         btn_next.get_style_context().add_class("ctrl-btn")
         btn_next.connect("clicked", lambda x: self.music_sys.next_song())
         
@@ -430,10 +437,12 @@ class CarPlayUI(Gtk.ApplicationWindow):
         """Actualiza la tarjeta derecha cuando music_player detecta un cambio de canción"""
         self.lbl_mini_title.set_text(title)
         self.lbl_mini_artist.set_text(artist)
+        
+        # Cambiamos el icono visual de GTK en lugar del set_label viejo
         if is_playing:
-            self.btn_play_pause.set_label("⏸")
+            self.img_play_pause.set_from_icon_name("media-playback-pause-symbolic", Gtk.IconSize.BUTTON)
         else:
-            self.btn_play_pause.set_label("▶️")
+            self.img_play_pause.set_from_icon_name("media-playback-start-symbolic", Gtk.IconSize.BUTTON)
 
     def update_progress_bar(self, current_sec, total_sec, current_str, total_str):
         """Actualiza la barra de progreso y los textos de tiempo en tiempo real"""
