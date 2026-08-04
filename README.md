@@ -36,12 +36,14 @@ El sistema utiliza la tecnología **OpenAMP (RPMsg)** para establecer un canal d
 - **Reloj y Panel de Control:** Sincronización de fecha y hora del sistema en un panel lateral interactivo.
 
 ## Estructura del Repositorio
+```text
 ├── musica/             # Directorio para archivos MP3 y carátulas (.jpg/.png)
 ├── car_interface.py    # Ventana principal e integración de la UI GTK3
 ├── music_player.py     # Lógica del reproductor multimedia y motor GStreamer
 ├── gps_map.py          # Módulo de renderizado del mapa GPS
 ├── stream.py           # Gestión del flujo de video para la cámara de reversa
 └── README.md           # Documentación del proyecto
+```
 
 ## Requisitos y Simulación
 El código de este repositorio fue diseñado para ejecutarse nativamente en el entorno embebido de la tarjeta STM32MP257F-DK, pero también permite simulaciones de la interfaz gráfica en entornos de escritorio como MSYS2 (Windows) o distribuciones Linux.
